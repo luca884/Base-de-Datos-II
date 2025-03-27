@@ -1,5 +1,5 @@
-create database TP1;
-use TP1;
+create database TP1_LucaBdd2;
+use TP1_LucaBdd2;
 
 ---------------------------------------------
 -- PARA EJERCICIOS 1 - 4
@@ -45,7 +45,7 @@ Begin
 END //
 DELIMITER ;
 
-call crearTablaExistente;
+-- call crearTablaExistente;
 
 
 DELIMITER //
@@ -140,10 +140,139 @@ CREATE TABLE actividades (
 
 
 
-create 
+DELIMITER //
+create procedure ertarActividad(in id_socio_p int, in id_plan_p int)
+Begin
+	declare id1 int;
+    declare id2 int;
+
+	declare exit handler for sqlexception
+    begin 
+		select 'El id socio/plan no existe' AS Mensaje;
+	end;
+   select id_plan into id1 from planes where id_plan = id_plan_p;
+   select id_socio into id2 from socios where id_socio = id_socio_p;
+	if exists (SELECT 1 FROM PLANES, SOCIOS WHERE ID_PLAN = ID_PLAN_P AND ID_SOCIO = ID_SOCIO_P) THEN
+	insert into actividades (id_socio, id_plan) values (id2, id1);
+    select 'Se ingreso correctamente la actividad' as mensaje;
+    end if;
+
+END // 
+DELIMITER ;
+
+call ertarActividad(2,1);
+
+insert into planes (nombre,duracion,precio,servicios) values ('basquet', 1 , 323432, 'fdsfsf');
+insert into socios (nombre,apellido,fecha_nacimiento, direccion, telefono) values ('luca', 'mariño', 432, 'fsdfsd', 4234234); 
+
+select * from socios;
+select * from actividades;
+
+
+
+DELIMITER // 
+create procedure registro(in id_p int)
+Begin 
+	declare continue handler for not found
+    Begin 
+		select 'NO se encontro el id' as mensaje;
+	end;
+
+	select * from socios where id_socio = id_p; 
+
+end // 
+DELIMITER ;
+drop procedure registro;
+call registro(2);
 
 
 
 
+DELIMITER //
+
+DELIMITER //
+drop procedure registrarSocioConPlan; -- NO RESULTO
+CREATE PROCEDURE registrarSocioConPlan(IN nombre_p VARCHAR(50),IN apellido_p VARCHAR(50),IN fecha_nacimiento_p DATE,
+IN direccion_p VARCHAR(100),IN telefono_p VARCHAR(20),IN id_plan_p INT)
+BEGIN
+    DECLARE socio_id INT;
+    DECLARE mensaje_error VARCHAR(255);
+    
+
+END //
+
+DELIMITER ;
 
 
+CALL registrarSocioConPlan('Juan','Pérez','1990-05-15','savio' ,'123456789',1);
+
+
+
+
+drop procedure actualizarPlanYRegistrarActividad;
+DELIMITER // 
+CREATE PROCEDURE actualizarPlanYRegistrarActividad(in id_plan_p int, in precio_p double, in id_socio_p int,in id_actividad_p int )
+Begin
+	declare exit handler for sqlexception
+    begin 
+		rollback;
+        select 'Se a cancelado la actualizacion' as mensaje;
+	end;
+
+    if(select 1 from planes where id_planes = id_plan_p) then
+		update planes
+        set precio = precio_p
+        where id_plan = id_plan_p;
+	else 
+		rollback;
+        select 'No existe ese plan ' as mensaje;
+		LEAVE actualizarPlanYRegistrarActividad;
+    end if;
+    
+    
+    if (id_socio_p is null and id_actividad_p is null) then
+		rollback; 
+        select 'ID socio/Actividad no existen ' as mensaje;
+        LEAVE proc_block;
+	end if;
+	
+    insert into actividades(id_socio, id_plan) values (id_socio_p,id_actividad_p);
+    commit;
+    
+    select 'Se han realizado todos los cambios' as mensaje; 
+        
+
+proc_block : End //
+DELIMITER ;
+
+
+
+DELIMITER //
+CREATE procedure eliminarSocioYActividades(in id_socio_p int ) 
+Begin 
+	bloque : Begin
+	declare exit handler for sqlexception
+    Begin 
+		rollback;
+        select 'Se produjo un error ' as mensaje;
+	end;
+    
+    START transaction;
+    IF NOT EXISTS (SELECT 1 FROM socios WHERE id_socio = id_socio_p) THEN
+		rollback;
+        select 'El socio no existe ' as mensaje;
+		leave bloque;
+	END IF;
+     
+    delete from actividades where id_socio = id_socio_p;
+	DELETE from socios where id_socio = id_socio_p;
+    
+    commit;
+    select 'Se elimino todo correctamente ' as mensaje;
+
+	end bloque ;
+end // 
+DELIMITER ;
+
+-- para usar LEAVE etiquetar el codigo en un bloque y a lo ultimo pone end bloque ; y funciona 
+	
